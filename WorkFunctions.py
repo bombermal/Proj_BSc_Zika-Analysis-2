@@ -1,7 +1,10 @@
 import Node as nd
 import pandas as pd
+import multiprocessing as mp
+from multiprocessing.dummy import Pool as ThreadPool
 from Bio.SeqUtils import seq3, seq1 as seqX
 from Bio import SeqIO
+from tqdm import tqdm
 
 def makeNodes(seq, pdb=True):
     """
@@ -104,29 +107,35 @@ def fixDateTime(df):
     """
     for ii, atual in enumerate(df.Date):
         df.Date.loc[ii] = pd.to_datetime(atual, format='%Y/%m/%d', errors='ignore')
+
+def fillPosition(df):
+    temp = pd.DataFrame()
+    for jj, kk in enumerate(df):
+        temp.loc[0, str(jj)+"POS"] = kk
         
+    return temp
+
 def makeCountDF(df, proteinID, amino=True):
     selectDF = df[df.Protein == proteinID].Seq.tolist()
     selectDF = [splitCell(x, amino) for x in selectDF]
-    
+
     temp = pd.DataFrame()
+    poolSize = mp.cpu_count()
+    pool = ThreadPool(poolSize)
+    results = []
     
-    for ii in selectDF:
-        idx = len(temp)
-        for jj, kk in enumerate(ii):
-            temp.loc[idx, str(jj)+"POS"] = kk
+    for ii in tqdm(pool.imap_unordered(fillPosition, selectDF ), total=len(selectDF)):
+        temp = pd.concat([temp, ii], axis=0, sort=False)
+    pool.close()
+    pool.join()
     
+    temp = temp.reset_index().drop(["index"], axis=1)
+
     if amino:
-        try:
-            temp = temp.apply(pd.Series.value_counts).drop["-"]
-        except:
-            temp = temp.apply(pd.Series.value_counts)
+        temp = temp.apply(pd.Series.value_counts)
     else:
-        try:
-            temp = temp.drop["-"]
-        except:
-            pass
-    
+        temp = temp.drop["-"]
+        
     return temp
     
 
@@ -167,3 +176,16 @@ def findPoli(df, size=4):
         if aux >= size:
             temp.append(ii)
     return df[temp].copy()
+
+def cleanData(df, dataList):
+    dataCut = {'5GS6' : 1452, '5IY3': 767, '5K6K': 1454, '5JMT': 1835, '5TMH': 3655}
+    cleanedDF = pd.DataFrame()
+    strangeDF = pd.DataFrame()
+    for ii in dataList:
+        temp = df[(df.Protein == ii) & (df.Len <= dataCut[ii])]
+        temp2 = df[(df.Protein == ii) & (df.Len > dataCut[ii])]
+        cleanedDF = pd.concat([cleanedDF, temp])
+        strangeDF = pd.concat([strangeDF, temp2])
+        
+    return cleanedDF, strangeDF
+    
