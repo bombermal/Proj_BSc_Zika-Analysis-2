@@ -30,6 +30,20 @@ class smithWaterman:
     seq2Al   = None
     cut = None
     
+    """
+    mt = match score
+    ms = miss match score
+    gp = gap score
+
+    sq1 = 1st sequence
+    sq2 = 2nd sequence
+
+    condition = True, show align.
+                    False, hide align
+                    
+    writeAl = True, Write a file whith the alignment, for depuration purporses
+            #### Set the path manually
+    """
     def constructor(self, mt = 2, ms = -1, gp = -1, sq1 = None, sq2 = None, condition = False, writeAl=False):
         self.match    = mt
         self.mismatch = ms
