@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 def plotGraph(df, title, color=True, ceiling=1000000, floor=0):
-    color_dict = {'-' : '#1a0000', 'A' : '#29a329', 'C' : '#cca300', 'D' : '#3399ff', 'E' : '#3399ff', 'F' : '#29a329', 'G' : '#cca300', 'H' : '#004d99', 'I' : '#29a329', 'K' : '#004d99', 'L' : '#29a329', 'M' : '#29a329', 'N' : '#a64dff', 'P' : '#cca300', 'Q' : '#a64dff', 'R' : '#004d99', 'S' : '#a64dff', 'T' : '#a64dff', 'U': '#cca300', 'V' : '#29a329', 'W' : '#29a329', 'X' : '#FF0000', 'Y' : '#29a329'}
+    color_dict = {'-' : 'Black', 'A' : '#29a329', 'C' : '#cca300', 'D' : '#3399ff', 'E' : '#3399ff', 'F' : '#29a329', 'G' : '#cca300', 'H' : '#004d99', 'I' : '#29a329', 'K' : '#004d99', 'L' : '#29a329', 'M' : '#29a329', 'N' : '#a64dff', 'P' : '#cca300', 'Q' : '#a64dff', 'R' : '#004d99', 'S' : '#a64dff', 'T' : '#a64dff', 'U': '#cca300', 'V' : '#29a329', 'W' : '#29a329', 'X' : '#FF0000', 'Y' : '#29a329'}
     df = df[(df >= floor) & (df <= ceiling)]
     if color:
         ax = df.T.plot(kind="bar",  stacked=True, figsize=(200,10), title=title, color=[color_dict.get(x, '#333333') for x in df.index])

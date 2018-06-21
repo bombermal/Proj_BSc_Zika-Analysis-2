@@ -16,7 +16,6 @@ def makeNodes(seq, pdb=True):
             temp.append(nd.node(seqX(seq.loc[ii, "Residue"]), seq.loc[ii, "Degree"]))
         else:
             temp.append(nd.node(seq[ii], -10))
-
             
     return temp        
  
@@ -188,4 +187,81 @@ def cleanData(df, dataList):
         strangeDF = pd.concat([strangeDF, temp2])
         
     return cleanedDF, strangeDF
+
+def choseOne(val):
+    if val == -1:
+        return ['5GS6', '5IY3', '5K6K', '5JMT', "5TMH"], []
+    else:
+        dataList = ['5GS6', '5IY3', '5K6K', '5JMT', "5TMH"]
+        val = dataList.index(val)
+        return [dataList.pop(val)], dataList
+
+def updateDf(df, tempAminoDegrees, condition=True):
+    for ii in tempAminoDegrees.iterrows():
+        if condition:
+            select = df[(df.ID == ii[1].ID) & (df.Protein == ii[1].Protein)]
+            idx = select.index[0]
+            df.loc[idx, "Seq"] = ii[1].Seq
+            df.loc[idx, "Len"] = ii[1].Len
+        else:
+            select = df[(df.Sample_ID == ii[1].Sample_ID) & (df.Protein == ii[1].Protein)]
+            idx = select.index[0]
+            df.loc[idx, "Seq"] = ii[1].Seq
+            df.loc[idx, "Cover"] = ii[1].Cover
+        
+    return df
+
+def fixStrangeDF(pList, cover, aminoDegrees, nsFiles):
+    for protein in pList:
+        tempSaveList, tempDelList = choseOne(protein)
+
+        ids = strangeDF[strangeDF.Protein == protein].ID.tolist()
+        toProcess = pd.DataFrame()
+        for ii in ids:
+            toProcess = pd.concat([toProcess, fastaProDF[fastaProDF.ID == ii]])
+
+        toProcess = toProcess.reset_index(drop=True)
+
+        obj = wFlow.work()
+        nsFiles = wFunc.readPDBs()
+        tempCover, tempAminoDegrees = obj.prepareWork(nsFiles, toProcess, tempDelList)
+
+        print("Before:", cover.Sample_ID.count(), aminoDegrees.ID.count())
+        cover = updateDf(cover, tempCover, False)
+        aminoDegrees = updateDf(aminoDegrees, tempAminoDegrees)
+        print("After:", cover.Sample_ID.count(), aminoDegrees.ID.count())
+      
+    aminoDegrees.to_csv(path2, sep="\t", index=False)
+    cover.to_csv(path, sep="\t", index=False)
     
+def readOrCreate(nsFiles, fastaProDF, delList, saveList, makeTheMagic=False):
+    path = "read/ResultCover/allSequencesCover.csv"
+    path2 = "read/ResultCover/allSequencesAmino.csv"
+    if makeTheMagic:
+        print("I'm going to an adventure!")
+        obj = wFlow.work()
+        """
+        1 - PDBs
+        2 - Sequences
+        3 - showAlign=False
+        4 - saveAlign=False
+        """
+        cover, aminoDegrees = obj.prepareWork(nsFiles, fastaProDF, delList)
+        aminoDegrees.to_csv(path2, sep="\t", index=False)
+        cover.to_csv(path, sep="\t", index=False)
+
+        cleanedDF, strangeDF = wFunc.cleanData(aminoDegrees, saveList)
+
+        wFunc.countAndSavePoli(saveList, cleanedDF)
+        wFunc.countAndSavePoli(saveList, cleanedDF, False)
+
+        #obj.makeFasta(cover, dataList)
+
+    print("Ok, just reading!")
+    cover = pd.read_csv(path, sep="\t") 
+    aminoDegrees = pd.read_csv(path2, sep="\t")
+    cleanedDF, strangeDF = cleanData(aminoDegrees, saveList)
+    poliListAmino = readSavedPoli(saveList)
+    poliListDegree = readSavedPoli(saveList, False)
+    
+    return cover, aminoDegrees, cleanedDF, strangeDF, poliListAmino, poliListDegree

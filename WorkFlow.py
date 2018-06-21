@@ -1,11 +1,14 @@
 import SmithWaterman2 as sw
-import FinalDF as fd
+#import FinalDF as fd
 import WorkFunctions as wFunc
 from tqdm import tqdm
 from multiprocessing.dummy import Pool as ThreadPool
 import multiprocessing as mp
 import pandas as pd
 
+"""
+    Class work, contains the functions for the execution of the pipeline
+"""
 
 class work(object):
     sequence  = None
@@ -16,6 +19,10 @@ class work(object):
     finalDF = None
     
     def getNode(self):
+        """
+            Return seqNode2 and seqNode1 for depuration purposes. 
+            Or any other that you can imagine.
+        """
         return self.seqNode2, self.seqNode1
     
     def workDivide(self, dfWork):
