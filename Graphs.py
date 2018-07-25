@@ -83,18 +83,18 @@ def plotSingleDegree(nsFiles, poliListDegree, poliListAmino, proteinID, polimorp
     proteinID = proteinID[1]
     poliListDegreeSelect = flatDF(poliListDegree[wFunc.findPoli(poliListAmino[idx], polimorphCut).columns].copy())
 
-    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(10,5))
+    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(10,5), sharex=True)
     ax1.hist(nsFiles[proteinID].Degree.tolist())
     ax1.set_title("Degrees distribution on PDB "+proteinID)  
     ax1.set_xlabel("Degree")
     ax1.set_ylabel("Frequency")
     ax1.grid(axis="x", linestyle='dotted')
-    #ax1.set_xlim(0,15)
     ax2.hist(poliListDegreeSelect)
     ax2.set_title("Degrees distribution on polymorphic bases for "+proteinID)  
     ax2.set_xlabel("Degree")
     ax2.set_ylabel("Frequency")
     ax2.grid(axis="x", linestyle='dotted')
+    ax2.set_xlim(left=0)
     #plt.xticks(np.arange(0, 15, step=1))
     plt.tight_layout()
     plt.savefig("imgs/Degree_"+proteinID+".png", dpi=600)
@@ -116,7 +116,7 @@ def plotBtw(file, name):
     ax2.set_ylabel("Frequency")
     ax2.grid(axis="x", linestyle='dotted')
     plt.tight_layout()
-    plt.savefig("imgs/Btween_"+proteinID+".png", dpi=600)
+    plt.savefig("imgs/Btween_"+name+".png", dpi=600)
     plt.show()
     
 def allPDBs(nsFiles):
