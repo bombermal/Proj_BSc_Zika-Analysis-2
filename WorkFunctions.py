@@ -1,6 +1,7 @@
 import Node as nd
 import pandas as pd
 import multiprocessing as mp
+import WorkFlow as wFlow
 from multiprocessing.dummy import Pool as ThreadPool
 from Bio.SeqUtils import seq3, seq1 as seqX
 from Bio import SeqIO
@@ -64,16 +65,20 @@ def fileRead(path, ext):
             temp.append(seqRecord)
     return temp
 
-def readPDBs():
+def readPDBs(condition = False):
     """
         Read my PDBs files
     """
+    src = "_nodes.txt"
+    if condition:
+        src = "_edges.txt"
+        
     dataList = ["5gs6", "5IY3", "5k6k"]
     nsFiles = {}
-    nsFiles["5JMT"] = pd.read_csv("read/NS3/5JMT_nodes.txt", sep="\t", low_memory=False)
-    nsFiles["5TMH"] = pd.read_csv("read/NS5/5TMH_nodes.txt", sep="\t", low_memory=False)
+    nsFiles["5JMT"] = pd.read_csv("read/NS3/5JMT"+src, sep="\t", low_memory=False)
+    nsFiles["5TMH"] = pd.read_csv("read/NS5/5TMH"+src, sep="\t", low_memory=False)
     for ii in dataList:
-        nsFiles[ii.upper()] = pd.read_csv("read/NS1/"+ii+"_nodes.txt", sep="\t", low_memory=False)
+        nsFiles[ii.upper()] = pd.read_csv("read/NS1/"+ii+src, sep="\t", low_memory=False)
     
     return nsFiles
 
@@ -97,15 +102,8 @@ def makeDF(columns, sourceList):
     for itr in sourceList:
         temp = itr.description.split("|")
         baseDf.loc[len(baseDf)] = [temp[0].strip(), temp[1], temp[2], temp[3], str(itr.seq)]
-    fixDateTime(baseDf)
+    baseDf["Date"] = pd.to_datetime(baseDf["Date"])
     return baseDf
-
-def fixDateTime(df):
-    """
-        Fix Column DateTime in DataFrame
-    """
-    for ii, atual in enumerate(df.Date):
-        df.Date.loc[ii] = pd.to_datetime(atual, format='%Y/%m/%d', errors='ignore')
 
 def fillPosition(df):
     temp = pd.DataFrame()
@@ -114,47 +112,44 @@ def fillPosition(df):
         
     return temp
 
-def makeCountDF(df, proteinID, amino=True):
-    selectDF = df[df.Protein == proteinID].Seq.tolist()
-    selectDF = [splitCell(x, amino) for x in selectDF]
-
-    temp = pd.DataFrame()
-    poolSize = mp.cpu_count()
-    pool = ThreadPool(poolSize)
-    results = []
+def makeCountDF(df, proteinID):
+    tempAmino = pd.DataFrame()
+    tempDegree = pd.DataFrame()
+    selectDF = df[df.Protein == proteinID]
     
-    for ii in tqdm(pool.imap_unordered(fillPosition, selectDF ), total=len(selectDF)):
-        temp = pd.concat([temp, ii], axis=0, sort=False)
-    pool.close()
-    pool.join()
-    
-    temp = temp.reset_index().drop(["index"], axis=1)
+    cont = 0
+    for idx, ii in selectDF.iterrows():
+        tam = len(tempAmino)
+        seqA = splitCell(ii.Seq, True)
+        seqB = splitCell(ii.Seq, False)
 
-    if amino:
-        temp = temp.apply(pd.Series.value_counts)
-    else:
-        temp = temp.drop["-"]
-        
-    return temp
+        numCol = len(seqA)
+        tempAmino.loc[tam, "ID"] = ii.ID
+        tempDegree.loc[tam, "ID"] = ii.ID
+        for jj in range(numCol):
+            tempAmino.loc[tam, str(jj)+"POS"] = seqA[jj]
+            tempDegree.loc[tam, str(jj)+"POS"] = seqB[jj]
+
+    return tempAmino, tempDegree
+
+def savePoli(dataList, df):
+    for ii in dataList:
+        tempAmino, tempDegree = makeCountDF(df, ii)
+        tempAmino.to_csv("read/PolimorfDF/dfAmino"+ii+".csv", sep="\t", index=True)
+        tempDegree.to_csv("read/PolimorfDF/dfDegree"+ii+".csv", sep="\t", index=True)
+        print("PDB: "+ii+" saved!")
     
 
 def splitCell(seq, amino):
+    """
+        returna a Aminoacid or a degree value
+    """
     seq = seq.split("|")
     if amino:
         seq = [x.split(",")[0] for x in seq]
     else:
         seq = [x.split(",")[1] for x in seq]
     return seq
-
-def countAndSavePoli(dataList, df, amino=True):
-    for ii in dataList:
-        temp = makeCountDF(df, ii, amino)
-        if amino:
-            path = "read/PolimorfDF/dfAmino"+ii+".csv"
-        else:
-            path = "read/PolimorfDF/dfDegree"+ii+".csv"
-        temp.to_csv(path, sep="\t", index=True)
-        print("PDB: "+ii+" saved!")
         
 def readSavedPoli(dataList, amino=True):
     temp = []
@@ -174,7 +169,7 @@ def findPoli(df, size=4):
         aux = len(df[ii].value_counts())
         if aux >= size:
             temp.append(ii)
-    return df[temp].copy()
+    return df[temp].iloc[:,1:].copy()
 
 def cleanData(df, dataList):
     dataCut = {'5GS6' : 1452, '5IY3': 767, '5K6K': 1454, '5JMT': 1835, '5TMH': 3655}
@@ -211,7 +206,9 @@ def updateDf(df, tempAminoDegrees, condition=True):
         
     return df
 
-def fixStrangeDF(pList, cover, aminoDegrees, nsFiles):
+def fixStrangeDF(pList, cover, aminoDegrees, strangeDF, fastaProDF, nsFiles):
+    path = "read/ResultCover/allSequencesCover.csv"
+    path2 = "read/ResultCover/allSequencesAmino.csv"
     for protein in pList:
         tempSaveList, tempDelList = choseOne(protein)
 
@@ -223,7 +220,7 @@ def fixStrangeDF(pList, cover, aminoDegrees, nsFiles):
         toProcess = toProcess.reset_index(drop=True)
 
         obj = wFlow.work()
-        nsFiles = wFunc.readPDBs()
+        nsFiles = readPDBs()
         tempCover, tempAminoDegrees = obj.prepareWork(nsFiles, toProcess, tempDelList)
 
         print("Before:", cover.Sample_ID.count(), aminoDegrees.ID.count())
@@ -250,10 +247,10 @@ def readOrCreate(nsFiles, fastaProDF, delList, saveList, makeTheMagic=False):
         aminoDegrees.to_csv(path2, sep="\t", index=False)
         cover.to_csv(path, sep="\t", index=False)
 
-        cleanedDF, strangeDF = wFunc.cleanData(aminoDegrees, saveList)
+        cleanedDF, strangeDF = cleanData(aminoDegrees, saveList)
 
-        wFunc.countAndSavePoli(saveList, cleanedDF)
-        wFunc.countAndSavePoli(saveList, cleanedDF, False)
+        savePoli(saveList, cleanedDF)
+        savePoli(saveList, cleanedDF)
 
         #obj.makeFasta(cover, dataList)
 
