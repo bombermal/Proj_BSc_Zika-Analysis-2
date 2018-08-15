@@ -28,6 +28,7 @@ class smithWaterman:
     seq2     = None
     seq1Al   = None
     seq2Al   = None
+    seqIds   = None
     cut = None
     
     """
@@ -95,7 +96,7 @@ class smithWaterman:
         self.cut = (idents / alength)*100
         self.seq2Al, self.seq1Al = wFunc.matchDegrees(self.seq2Al, self.seq1Al)
         
-        return seq2_aligned, seq1_aligned, self.seq2Al, self.seq1Al
+        return seq2_aligned, seq1_aligned, self.seq2Al, self.seq1Al, self.seqIds
 
     def traceback(self, score_matrix, start_pos):
         '''Find the optimal path through the matrix.
@@ -122,21 +123,21 @@ class smithWaterman:
             if move == DIAG:
                 aligned_seq1.append(self.seq1[x - 1].getAmino())
                 aligned_seq2.append(self.seq2[y - 1].getAmino())
-                seq1Al.append(nd.node(self.seq1[x - 1].getAmino(), self.seq1[x - 1].getDegree()))
-                seq2Al.append(nd.node(self.seq2[y - 1].getAmino(), self.seq2[y - 1].getDegree()))
+                seq1Al.append(nd.node(self.seq1[x - 1].getAmino(), self.seq1[x - 1].getDegree(), self.seq1[x - 1].getAminoId()))
+                seq2Al.append(nd.node(self.seq2[y - 1].getAmino(), self.seq2[y - 1].getDegree(), self.seq2[y - 1].getAminoId()))
                 x -= 1
                 y -= 1
             elif move == UP:
                 aligned_seq1.append(self.seq1[x - 1].getAmino())
                 aligned_seq2.append("-")
-                seq1Al.append(nd.node(self.seq1[x - 1].getAmino(), self.seq1[x - 1].getDegree()))
-                seq2Al.append(nd.node("-", -1))
+                seq1Al.append(nd.node(self.seq1[x - 1].getAmino(), self.seq1[x - 1].getDegree(), self.seq1[x - 1].getAminoId()))
+                seq2Al.append(nd.node("-", -1, "-"))
                 x -= 1
             else:
                 aligned_seq1.append("-")
                 aligned_seq2.append(self.seq2[y - 1].getAmino())
-                seq1Al.append(nd.node("-", -1))
-                seq2Al.append(nd.node(self.seq2[y - 1].getAmino(), self.seq2[y - 1].getDegree()))
+                seq1Al.append(nd.node("-", -1, "-"))
+                seq2Al.append(nd.node(self.seq2[y - 1].getAmino(), self.seq2[y - 1].getDegree(), self.seq2[y - 1].getAminoId()))
                 y -= 1
                 
 
@@ -144,11 +145,12 @@ class smithWaterman:
         
         aligned_seq1.append(self.seq1[x - 1].getAmino())
         aligned_seq2.append(self.seq2[y - 1].getAmino())
-        seq1Al.append(nd.node(self.seq1[x - 1].getAmino(), self.seq1[x - 1].getDegree()))
-        seq2Al.append(nd.node(self.seq2[y - 1].getAmino(), self.seq2[y - 1].getDegree()))
+        seq1Al.append(nd.node(self.seq1[x - 1].getAmino(), self.seq1[x - 1].getDegree(), self.seq1[x - 1].getAminoId()))
+        seq2Al.append(nd.node(self.seq2[y - 1].getAmino(), self.seq2[y - 1].getDegree(), self.seq2[y - 1].getAminoId()))
         
         self.seq1Al = list(reversed(seq1Al))
         self.seq2Al = list(reversed(seq2Al))
+        self.seqIds = [x.getAminoId() for x in self.seq2Al]
         return ''.join(reversed(aligned_seq1)), ''.join(reversed(aligned_seq2)), x-1, y-1
 
     def create_score_matrix(self, rows, cols):

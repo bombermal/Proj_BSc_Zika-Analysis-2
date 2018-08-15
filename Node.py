@@ -10,10 +10,12 @@ class node:
     """
     amino = None
     degree = None
+    aminoId = None
     
-    def __init__(self, amino, degree):
+    def __init__(self, amino, degree, aminoId):
         self.amino = amino
         self.degree = degree
+        self.aminoId = aminoId
 
     def getAmino(self):
         return self.amino
@@ -26,10 +28,17 @@ class node:
     
     def setDegree(self, val):
         self.degree = val
+    
+    def getAminoId(self):
+        return self.aminoId
+    
+    def setAminoId(self, val):
+        self.aminoId = val
         
     def getAll(self):
-        return self.amino, self.degree
+        return self.amino, self.degree, self.aminoId
     
-    def setAll(self, amino, degree):
+    def setAll(self, amino, degree, aminoId):
         self.amino = amino
         self.degree = degree
+        self.aminoId = aminoId

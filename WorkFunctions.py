@@ -10,13 +10,15 @@ from tqdm import tqdm
 def makeNodes(seq, pdb=True):
     """
         Make list of nodes from a string
+        True if the file was a PDB
+        False if a Sample
     """
     temp = []
     for ii in range(len(seq)):
         if pdb:
-            temp.append(nd.node(seqX(seq.loc[ii, "Residue"]), seq.loc[ii, "Degree"]))
+            temp.append(nd.node(seqX(seq.loc[ii, "Residue"]), seq.loc[ii, "Degree"], seq.loc[ii, "NodeId"]))
         else:
-            temp.append(nd.node(seq[ii], -10))
+            temp.append(nd.node(seq[ii], -10, ii))
             
     return temp        
  
@@ -198,6 +200,7 @@ def updateDf(df, tempAminoDegrees, condition=True):
             idx = select.index[0]
             df.loc[idx, "Seq"] = ii[1].Seq
             df.loc[idx, "Len"] = ii[1].Len
+            df.loc[idx, "SeqIds"] = ii[1].SeqIds
         else:
             select = df[(df.Sample_ID == ii[1].Sample_ID) & (df.Protein == ii[1].Protein)]
             idx = select.index[0]
@@ -221,7 +224,7 @@ def fixStrangeDF(pList, cover, aminoDegrees, strangeDF, fastaProDF, nsFiles):
 
         obj = wFlow.work()
         nsFiles = readPDBs()
-        tempCover, tempAminoDegrees = obj.prepareWork(nsFiles, toProcess, tempDelList)
+        tempCover, tempAminoDegrees = obj.prepareWork(nsFiles, toProcess, tempDelList, False, False, True)
 
         print("Before:", cover.Sample_ID.count(), aminoDegrees.ID.count())
         cover = updateDf(cover, tempCover, False)
